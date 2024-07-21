@@ -30,3 +30,10 @@ actor_config:
     actor_count: 1
     actor_module: "libsvr_step_two.so"
     actor_service: "../config/step_two.yml"
+
+  - actor_name: "use_thread"
+    actor_count: 1
+    actor_module: "libsvr_use_thread.so"
+    actor_address: "127.0.0.1"
+    actor_port: 7779
+    actor_service: "../config/use_thread.yml"
