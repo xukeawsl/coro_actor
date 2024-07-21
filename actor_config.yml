@@ -1,0 +1,32 @@
+# 进程间通信使用的 unix 域套接字
+unix: "/tmp/actor_proxy"
+
+actor_config:
+  - actor_name: "echo"
+    actor_count: 2
+    actor_module: "libsvr_echo.so"
+    actor_address: "127.0.0.1"
+    actor_port: 7777
+    actor_service: "../config/echo.yml"
+
+  - actor_name: "calc"
+    actor_count: 2
+    actor_module: "libsvr_calc.so"
+    actor_address: "127.0.0.1"
+    actor_port: 7778
+    actor_service: "../config/calc.yml"
+
+  - actor_name: "add"
+    actor_count: 1
+    actor_module: "libsvr_add.so"
+    actor_service: "../config/add.yml"
+  
+  - actor_name: "step_one"
+    actor_count: 1
+    actor_module: "libsvr_step_one.so"
+    actor_service: "../config/step_one.yml"
+
+  - actor_name: "step_two"
+    actor_count: 1
+    actor_module: "libsvr_step_two.so"
+    actor_service: "../config/step_two.yml"

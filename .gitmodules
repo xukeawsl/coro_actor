@@ -1,0 +1,9 @@
+[submodule "third-party/spdlog"]
+	path = third-party/spdlog
+	url = https://github.com/gabime/spdlog.git
+[submodule "third-party/yalantinglibs"]
+	path = third-party/yalantinglibs
+	url = https://github.com/alibaba/yalantinglibs.git
+[submodule "third-party/yaml-cpp"]
+	path = third-party/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git

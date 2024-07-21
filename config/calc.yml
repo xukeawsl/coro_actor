@@ -1,0 +1,3 @@
+services:
+  - svc_calc
+  - svc_step
