@@ -20,7 +20,7 @@ add_subdirectory(third-party/yalantinglibs)
 add_subdirectory(third-party/yaml-cpp)
 
 file(GLOB_RECURSE srcs ${PROJECT_SOURCE_DIR}/src/*.cpp)
-file(GLOB_RECURSE hrds ${PROJECT_SOURCE_DIR}/src/*.h)
+file(GLOB_RECURSE hrds ${PROJECT_SOURCE_DIR}/include/*.h)
 
 include(cmake/search_path.cmake)
 
@@ -45,3 +45,22 @@ add_executable(${PROJECT_NAME} main.cpp)
 target_link_libraries(${PROJECT_NAME} PUBLIC coro_actor::coro_actor)
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
+
+#
+# Clang-Format
+#
+find_program(CLANG_FORMAT_EXECUTABLE
+    NAME "clang-format"
+    PATHS "/usr/bin" "/usr/local/bin"
+)
+
+if (CLANG_FORMAT_EXECUTABLE)
+    message(STATUS "Successfully find program `clang-format`")
+    message(STATUS "You can use the `make clang-format` command to automatically format the code style")
+    add_custom_target(actor-format ALL
+    COMMAND
+        ${CLANG_FORMAT_EXECUTABLE} --style=file -i ${hdrs};${srcs};${PROJECT_SOURCE_DIR}/main.cpp
+    COMMENT
+        "Automatically format the code style"
+    )
+endif()

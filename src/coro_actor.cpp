@@ -1,11 +1,12 @@
 #include "coro_actor.h"
+
 #include "coro_actor_ctx.h"
-#include "coro_actor_session.h"
 #include "coro_actor_protocol.h"
+#include "coro_actor_session.h"
 
 extern char** environ;
 
-coro_actor_ctx *g_actor_ctx;
+coro_actor_ctx* g_actor_ctx;
 
 static char* cpystrn(char* dst, const char* src, size_t n) {
     if (n == 0) {
@@ -27,10 +28,15 @@ static char* cpystrn(char* dst, const char* src, size_t n) {
     return dst;
 }
 
-coro_actor::coro_actor(int argc, char *argv[])
-    : type(PTYPE::MASTER), os_argc(argc), os_argv(argv), os_argv_last(argv[0]),
-      io_context(1), signals(io_context), terminate(false), isdaemon(false)
-{}
+coro_actor::coro_actor(int argc, char* argv[])
+    : type(PTYPE::MASTER),
+      os_argc(argc),
+      os_argv(argv),
+      os_argv_last(argv[0]),
+      io_context(1),
+      signals(io_context),
+      terminate(false),
+      isdaemon(false) {}
 
 coro_actor::~coro_actor() { spdlog::shutdown(); }
 
@@ -58,7 +64,8 @@ void coro_actor::stop_server() {
 
 void coro_actor::init() {
     if (this->os_argc != 2) {
-        throw std::runtime_error("Need a config file. usage: coro_actor configfilename");
+        throw std::runtime_error(
+            "Need a config file. usage: coro_actor configfilename");
     }
 
     /* 加载配置文件 */
@@ -104,8 +111,10 @@ void coro_actor::init() {
 
         if (cfg.address.empty()) continue;
 
-        auto listen_endpoint = asio::ip::tcp::endpoint(asio::ip::make_address(cfg.address), cfg.port);
-        auto acceptor = std::make_shared<asio::ip::tcp::acceptor>(this->io_context);
+        auto listen_endpoint = asio::ip::tcp::endpoint(
+            asio::ip::make_address(cfg.address), cfg.port);
+        auto acceptor =
+            std::make_shared<asio::ip::tcp::acceptor>(this->io_context);
         acceptor->open(listen_endpoint.protocol());
         acceptor->set_option(asio::ip::tcp::acceptor::reuse_address(true));
         acceptor->bind(listen_endpoint);
@@ -291,16 +300,22 @@ void coro_actor::signal_handler() {
     });
 }
 
-void coro_actor::update_actor_info(std::shared_ptr<actor_info> af, const std::string& call_id, bool is_waiting) {
+void coro_actor::update_actor_info(std::shared_ptr<actor_info> af,
+                                   const std::string& call_id,
+                                   bool is_waiting) {
     af->call_id = call_id;
     af->is_waiting = is_waiting;
 }
 
-void coro_actor::look_call_chain(const std::string& call_id, const std::string& service_name) {
+void coro_actor::look_call_chain(const std::string& call_id,
+                                 const std::string& service_name) {
     int order = 1;
     for (auto af : this->actor_call_chain_map[call_id]) {
-        SPDLOG_INFO("order = {}, service = {}, call_id = {}, name = {}, pid = {}, waiting = {}", 
-                    order++, service_name, af->call_id, af->name, af->pid, af->is_waiting);
+        SPDLOG_INFO(
+            "order = {}, service = {}, call_id = {}, name = {}, pid = {}, "
+            "waiting = {}",
+            order++, service_name, af->call_id, af->name, af->pid,
+            af->is_waiting);
     }
 }
 
@@ -331,7 +346,7 @@ void coro_actor::init_proxy_process() {
 void coro_actor::reap_proxy_process() {
     if (this->type != PTYPE::PROXIER) return;
 
-    if (this->proxy.pid != - 1 && this->proxy.exited) {
+    if (this->proxy.pid != -1 && this->proxy.exited) {
         this->init_proxy_process();
     }
 }
@@ -345,43 +360,54 @@ void coro_actor::stop_proxy_process() {
 void coro_actor::handle_proxy_process() {
     std::remove(this->unix_fd.c_str());
 
-    asio::local::stream_protocol::acceptor acceptor(this->io_context,
+    asio::local::stream_protocol::acceptor acceptor(
+        this->io_context,
         asio::local::stream_protocol::endpoint(this->unix_fd));
 
-    asio::co_spawn(acceptor.get_executor(), handle_proxy_accept(acceptor), asio::detached);
+    asio::co_spawn(acceptor.get_executor(), handle_proxy_accept(acceptor),
+                   asio::detached);
 
     this->io_context.run();
 
     exit(EXIT_SUCCESS);
 }
 
-asio::awaitable<void> coro_actor::handle_proxy_accept(asio::local::stream_protocol::acceptor& acceptor) {
+asio::awaitable<void> coro_actor::handle_proxy_accept(
+    asio::local::stream_protocol::acceptor& acceptor) {
     for (;;) {
         asio::error_code ec;
-        
-        auto socket = std::make_shared<asio::local::stream_protocol::socket>(this->io_context);
-        co_await acceptor.async_accept(*socket, asio::redirect_error(asio::use_awaitable, ec));
+
+        auto socket = std::make_shared<asio::local::stream_protocol::socket>(
+            this->io_context);
+        co_await acceptor.async_accept(
+            *socket, asio::redirect_error(asio::use_awaitable, ec));
         if (ec) {
             co_return;
         }
 
-        asio::co_spawn(acceptor.get_executor(), handle_proxy_deal_actor(socket), asio::detached);
+        asio::co_spawn(acceptor.get_executor(), handle_proxy_deal_actor(socket),
+                       asio::detached);
     }
 }
 
-asio::awaitable<void> coro_actor::handle_proxy_deal_actor(std::shared_ptr<asio::local::stream_protocol::socket> socket) {
+asio::awaitable<void> coro_actor::handle_proxy_deal_actor(
+    std::shared_ptr<asio::local::stream_protocol::socket> socket) {
     asio::error_code ec;
     uint8_t proto;
     uint32_t length;
     std::string deserialize_pack;
 
     for (;;) {
-        co_await asio::async_read(*socket, asio::buffer(&proto, 1), asio::redirect_error(asio::use_awaitable, ec));
+        co_await asio::async_read(
+            *socket, asio::buffer(&proto, 1),
+            asio::redirect_error(asio::use_awaitable, ec));
         if (ec) {
             co_return;
         }
 
-        co_await asio::async_read(*socket, asio::buffer(&length, 4), asio::redirect_error(asio::use_awaitable, ec));
+        co_await asio::async_read(
+            *socket, asio::buffer(&length, 4),
+            asio::redirect_error(asio::use_awaitable, ec));
         if (ec) {
             co_return;
         }
@@ -389,23 +415,27 @@ asio::awaitable<void> coro_actor::handle_proxy_deal_actor(std::shared_ptr<asio::
         length = asio::detail::socket_ops::network_to_host_long(length);
 
         deserialize_pack.resize(length);
-        
-        co_await asio::async_read(*socket, asio::buffer(deserialize_pack.data(), deserialize_pack.length()),
-                                  asio::redirect_error(asio::use_awaitable, ec));
+
+        co_await asio::async_read(
+            *socket,
+            asio::buffer(deserialize_pack.data(), deserialize_pack.length()),
+            asio::redirect_error(asio::use_awaitable, ec));
         if (ec) {
-            /* 有可能是上一次发送了 request 包但是被调用方崩溃了, 导致连接断开 */
+            /* 有可能是上一次发送了 request 包但是被调用方崩溃了, 导致连接断开
+             */
             co_return;
         }
 
         switch (proto) {
-            case CORO_ACTOR_CONNECT:
-            {
-                auto pack_opt = struct_pack::deserialize<coro_actor_connect_t>(deserialize_pack);
+            case CORO_ACTOR_CONNECT: {
+                auto pack_opt = struct_pack::deserialize<coro_actor_connect_t>(
+                    deserialize_pack);
                 assert(pack_opt.has_value());
 
                 auto pack = pack_opt.value();
 
-                SPDLOG_INFO("CONNECT: pid = [{}], name = [{}]", pack.pid, pack.name);
+                SPDLOG_INFO("CONNECT: pid = [{}], name = [{}]", pack.pid,
+                            pack.name);
 
                 auto af = std::make_shared<actor_info>();
                 af->name = pack.name;
@@ -420,22 +450,26 @@ asio::awaitable<void> coro_actor::handle_proxy_deal_actor(std::shared_ptr<asio::
 
                 proto = CORO_ACTOR_CONNACK;
 
-                std::string serialize_pack = struct_pack::serialize<std::string>(ack_pack);
+                std::string serialize_pack =
+                    struct_pack::serialize<std::string>(ack_pack);
 
-                length = asio::detail::socket_ops::host_to_network_long(serialize_pack.length());
+                length = asio::detail::socket_ops::host_to_network_long(
+                    serialize_pack.length());
 
                 std::array<asio::const_buffer, 3> write_buf = {
-                    { asio::buffer(&proto, 1), asio::buffer(&length, 4), 
-                      asio::buffer(serialize_pack.data(), serialize_pack.length()) }
-                };
+                    {asio::buffer(&proto, 1), asio::buffer(&length, 4),
+                     asio::buffer(serialize_pack.data(),
+                                  serialize_pack.length())}};
 
-                co_await asio::async_write(*socket, write_buf, asio::redirect_error(asio::use_awaitable, ec));
+                co_await asio::async_write(
+                    *socket, write_buf,
+                    asio::redirect_error(asio::use_awaitable, ec));
 
                 break;
             }
-            case CORO_ACTOR_REQUEST:
-            {
-                auto pack_opt = struct_pack::deserialize<coro_actor_request_t>(deserialize_pack);
+            case CORO_ACTOR_REQUEST: {
+                auto pack_opt = struct_pack::deserialize<coro_actor_request_t>(
+                    deserialize_pack);
                 assert(pack_opt.has_value());
 
                 auto pack = pack_opt.value();
@@ -453,32 +487,36 @@ asio::awaitable<void> coro_actor::handle_proxy_deal_actor(std::shared_ptr<asio::
 
                 break;
             }
-            case CORO_ACTOR_RESPONSE:
-            {
-                auto pack_opt = struct_pack::deserialize<coro_actor_response_t>(deserialize_pack);
+            case CORO_ACTOR_RESPONSE: {
+                auto pack_opt = struct_pack::deserialize<coro_actor_response_t>(
+                    deserialize_pack);
                 assert(pack_opt.has_value());
 
                 auto pack = pack_opt.value();
 
                 proto = CORO_ACTOR_RESPONSE;
 
-                std::string serialize_pack = struct_pack::serialize<std::string>(pack);
+                std::string serialize_pack =
+                    struct_pack::serialize<std::string>(pack);
 
-                length = asio::detail::socket_ops::host_to_network_long(serialize_pack.length());
+                length = asio::detail::socket_ops::host_to_network_long(
+                    serialize_pack.length());
 
                 std::array<asio::const_buffer, 3> write_buf = {
-                    { asio::buffer(&proto, 1), asio::buffer(&length, 4), 
-                      asio::buffer(serialize_pack.data(), serialize_pack.length()) }
-                };
+                    {asio::buffer(&proto, 1), asio::buffer(&length, 4),
+                     asio::buffer(serialize_pack.data(),
+                                  serialize_pack.length())}};
 
                 this->look_call_chain(pack.call_id, pack.service_name);
-                
+
                 auto& call_chain = this->actor_call_chain_map[pack.call_id];
 
                 auto af_self = call_chain.back();
                 call_chain.pop_back();
-                
-                co_await asio::async_write(*(call_chain.back()->socket), write_buf, asio::redirect_error(asio::use_awaitable, ec));
+
+                co_await asio::async_write(
+                    *(call_chain.back()->socket), write_buf,
+                    asio::redirect_error(asio::use_awaitable, ec));
 
                 this->update_actor_info(af_self, "", false);
                 co_await this->handle_proxy_handle_request(af_self);
@@ -490,11 +528,11 @@ asio::awaitable<void> coro_actor::handle_proxy_deal_actor(std::shared_ptr<asio::
     }
 }
 
-asio::awaitable<void> coro_actor::handle_proxy_handle_request(std::shared_ptr<actor_info> af) {
+asio::awaitable<void> coro_actor::handle_proxy_handle_request(
+    std::shared_ptr<actor_info> af) {
     asio::error_code ec;
-    
-    if (af->msg_queue.empty() ||
-        af->is_waiting) {
+
+    if (af->msg_queue.empty() || af->is_waiting) {
         co_return;
     }
 
@@ -510,7 +548,7 @@ asio::awaitable<void> coro_actor::handle_proxy_handle_request(std::shared_ptr<ac
     }
 
     auto actor_name = it->second;
-    
+
     auto& actor_info_list = this->actor_info_map[actor_name];
     if (actor_info_list.empty()) {
         /* 支持服务的节点都断开了 */
@@ -520,7 +558,8 @@ asio::awaitable<void> coro_actor::handle_proxy_handle_request(std::shared_ptr<ac
     auto select_iter = actor_info_list.begin();
     auto min_que_size = (*select_iter)->msg_queue.size();
 
-    for (auto info_iter = actor_info_list.begin(); info_iter != actor_info_list.end();) {
+    for (auto info_iter = actor_info_list.begin();
+         info_iter != actor_info_list.end();) {
         if (!(*info_iter)->socket->is_open()) {
             this->actor_pid_map.erase((*info_iter)->pid);
             info_iter = actor_info_list.erase(info_iter);
@@ -558,14 +597,15 @@ asio::awaitable<void> coro_actor::handle_proxy_handle_request(std::shared_ptr<ac
 
     std::string serialize_pack = struct_pack::serialize<std::string>(pack);
 
-    uint32_t length = asio::detail::socket_ops::host_to_network_long(serialize_pack.length());
+    uint32_t length =
+        asio::detail::socket_ops::host_to_network_long(serialize_pack.length());
 
     std::array<asio::const_buffer, 3> write_buf = {
-        { asio::buffer(&proto, 1), asio::buffer(&length, 4), 
-            asio::buffer(serialize_pack.data(), serialize_pack.length()) }
-    };
+        {asio::buffer(&proto, 1), asio::buffer(&length, 4),
+         asio::buffer(serialize_pack.data(), serialize_pack.length())}};
 
-    co_await asio::async_write(*((*select_iter)->socket), write_buf, asio::redirect_error(asio::use_awaitable, ec));
+    co_await asio::async_write(*((*select_iter)->socket), write_buf,
+                               asio::redirect_error(asio::use_awaitable, ec));
     if (ec) {
         /* 解除等待状态 */
         this->update_actor_info(this->actor_pid_map[pack.pid], "", false);
@@ -574,7 +614,8 @@ asio::awaitable<void> coro_actor::handle_proxy_handle_request(std::shared_ptr<ac
     }
 }
 
-void coro_actor::spawn_actor_process(const std::string& actor_name, int respawn) {
+void coro_actor::spawn_actor_process(const std::string& actor_name,
+                                     int respawn) {
     this->io_context.notify_fork(asio::io_context::fork_prepare);
     pid_t pid = fork();
 
@@ -602,7 +643,8 @@ void coro_actor::spawn_actor_process(const std::string& actor_name, int respawn)
 }
 
 void coro_actor::handle_actor_process() {
-    asio::co_spawn(this->io_context, handle_actor_notify_proxy(), asio::detached);
+    asio::co_spawn(this->io_context, handle_actor_notify_proxy(),
+                   asio::detached);
 
     this->io_context.run();
 
@@ -624,7 +666,8 @@ asio::awaitable<void> coro_actor::handle_actor_notify_proxy() {
     /* 将加载好的服务列表设置到上下文中 */
     std::unordered_map<std::string, coro_actor_ctx::func_t> service_map;
     for (const auto& service : cfg.services) {
-        auto service_func = reinterpret_cast<coro_actor_ctx::func_t>(dlsym(dl_handle.get(), service.c_str()));
+        auto service_func = reinterpret_cast<coro_actor_ctx::func_t>(
+            dlsym(dl_handle.get(), service.c_str()));
         if (!service_func) {
             SPDLOG_ERROR("failed to dlsym - {}", dlerror());
             this->stop_server();
@@ -634,10 +677,12 @@ asio::awaitable<void> coro_actor::handle_actor_notify_proxy() {
     }
 
     asio::error_code ec;
-    auto unix_socket = std::make_shared<asio::local::stream_protocol::socket>(this->io_context);
+    auto unix_socket = std::make_shared<asio::local::stream_protocol::socket>(
+        this->io_context);
 
     co_await unix_socket->async_connect(
-        asio::local::stream_protocol::endpoint(this->unix_fd), asio::redirect_error(asio::use_awaitable, ec));
+        asio::local::stream_protocol::endpoint(this->unix_fd),
+        asio::redirect_error(asio::use_awaitable, ec));
     if (ec) {
         SPDLOG_INFO("{}", ec.value());
         this->stop_server();
@@ -652,24 +697,25 @@ asio::awaitable<void> coro_actor::handle_actor_notify_proxy() {
 
     uint8_t proto = CORO_ACTOR_CONNECT;
     uint32_t serialize_length = serialize_pack.length();
-    serialize_length = asio::detail::socket_ops::host_to_network_long(serialize_length);
+    serialize_length =
+        asio::detail::socket_ops::host_to_network_long(serialize_length);
 
     std::array<asio::const_buffer, 3> write_buf = {
-        { asio::buffer(&proto, 1), asio::buffer(&serialize_length, 4),
-          asio::buffer(serialize_pack.data(), serialize_pack.length())}
-    };
+        {asio::buffer(&proto, 1), asio::buffer(&serialize_length, 4),
+         asio::buffer(serialize_pack.data(), serialize_pack.length())}};
 
-    co_await asio::async_write(*unix_socket, write_buf, asio::redirect_error(asio::use_awaitable, ec));
+    co_await asio::async_write(*unix_socket, write_buf,
+                               asio::redirect_error(asio::use_awaitable, ec));
     if (ec) {
         SPDLOG_INFO("{}", ec.value());
         co_return;
     }
 
     std::array<asio::mutable_buffer, 2> read_buf = {
-        { asio::buffer(&proto, 1), asio::buffer(&serialize_length, 4) }
-    };
+        {asio::buffer(&proto, 1), asio::buffer(&serialize_length, 4)}};
 
-    co_await asio::async_read(*unix_socket, read_buf, asio::redirect_error(asio::use_awaitable, ec));
+    co_await asio::async_read(*unix_socket, read_buf,
+                              asio::redirect_error(asio::use_awaitable, ec));
     if (ec) {
         SPDLOG_INFO("{}", ec.value());
         co_return;
@@ -677,16 +723,21 @@ asio::awaitable<void> coro_actor::handle_actor_notify_proxy() {
 
     assert(proto == CORO_ACTOR_CONNACK);
 
-    serialize_length = asio::detail::socket_ops::network_to_host_long(serialize_length);
+    serialize_length =
+        asio::detail::socket_ops::network_to_host_long(serialize_length);
 
     serialize_pack.resize(serialize_length);
-    co_await asio::async_read(*unix_socket, asio::buffer(serialize_pack.data(), serialize_pack.length()), asio::redirect_error(asio::use_awaitable, ec));
+    co_await asio::async_read(
+        *unix_socket,
+        asio::buffer(serialize_pack.data(), serialize_pack.length()),
+        asio::redirect_error(asio::use_awaitable, ec));
     if (ec) {
         SPDLOG_INFO("{}", ec.value());
         co_return;
     }
 
-    auto ack_pack_opt = struct_pack::deserialize<coro_actor_connack_t>(serialize_pack);
+    auto ack_pack_opt =
+        struct_pack::deserialize<coro_actor_connack_t>(serialize_pack);
     assert(ack_pack_opt.has_value());
 
     auto ack_result = ack_pack_opt.value().result;
@@ -694,27 +745,34 @@ asio::awaitable<void> coro_actor::handle_actor_notify_proxy() {
         co_return;
     }
 
-    g_actor_ctx = new coro_actor_ctx(this->io_context, unix_socket, std::move(service_map));
+    g_actor_ctx = new coro_actor_ctx(this->io_context, unix_socket,
+                                     std::move(service_map));
 
-    /* 开启两个协程, 一个用于接收 unix 域套接字的请求, 一个用于接收远程客户端的请求 */
-    asio::co_spawn(this->io_context, handle_actor_internal(unix_socket), asio::detached);
+    /* 开启两个协程, 一个用于接收 unix 域套接字的请求,
+     * 一个用于接收远程客户端的请求 */
+    asio::co_spawn(this->io_context, handle_actor_internal(unix_socket),
+                   asio::detached);
     asio::co_spawn(this->io_context, handle_actor_remote(), asio::detached);
 }
 
-asio::awaitable<void> coro_actor::handle_actor_internal(std::shared_ptr<asio::local::stream_protocol::socket> unix_socket) {
+asio::awaitable<void> coro_actor::handle_actor_internal(
+    std::shared_ptr<asio::local::stream_protocol::socket> unix_socket) {
     asio::error_code ec;
     uint8_t proto;
     uint32_t length;
     std::string deserialize_pack;
 
     while (unix_socket->is_open()) {
-
-        co_await asio::async_read(*unix_socket, asio::buffer(&proto, 1), asio::redirect_error(asio::use_awaitable, ec));
+        co_await asio::async_read(
+            *unix_socket, asio::buffer(&proto, 1),
+            asio::redirect_error(asio::use_awaitable, ec));
         if (ec) {
             co_return;
         }
 
-        co_await asio::async_read(*unix_socket, asio::buffer(&length, 4), asio::redirect_error(asio::use_awaitable, ec));
+        co_await asio::async_read(
+            *unix_socket, asio::buffer(&length, 4),
+            asio::redirect_error(asio::use_awaitable, ec));
         if (ec) {
             co_return;
         }
@@ -722,17 +780,19 @@ asio::awaitable<void> coro_actor::handle_actor_internal(std::shared_ptr<asio::lo
         length = asio::detail::socket_ops::network_to_host_long(length);
 
         deserialize_pack.resize(length);
-        
-        co_await asio::async_read(*unix_socket, asio::buffer(deserialize_pack.data(), deserialize_pack.length()),
-                                  asio::redirect_error(asio::use_awaitable, ec));
+
+        co_await asio::async_read(
+            *unix_socket,
+            asio::buffer(deserialize_pack.data(), deserialize_pack.length()),
+            asio::redirect_error(asio::use_awaitable, ec));
         if (ec) {
             co_return;
         }
 
         switch (proto) {
-            case CORO_ACTOR_REQUEST:
-            {
-                auto pack_opt = struct_pack::deserialize<coro_actor_request_t>(deserialize_pack);
+            case CORO_ACTOR_REQUEST: {
+                auto pack_opt = struct_pack::deserialize<coro_actor_request_t>(
+                    deserialize_pack);
                 assert(pack_opt.has_value());
 
                 auto pack = pack_opt.value();
@@ -748,9 +808,9 @@ asio::awaitable<void> coro_actor::handle_actor_internal(std::shared_ptr<asio::lo
 
                 break;
             }
-            case CORO_ACTOR_RESPONSE:
-            {
-                auto pack_opt = struct_pack::deserialize<coro_actor_response_t>(deserialize_pack);
+            case CORO_ACTOR_RESPONSE: {
+                auto pack_opt = struct_pack::deserialize<coro_actor_response_t>(
+                    deserialize_pack);
                 assert(pack_opt.has_value());
 
                 g_actor_ctx->set_response_pack(std::move(pack_opt.value()));
@@ -774,7 +834,8 @@ asio::awaitable<void> coro_actor::handle_actor_remote() {
 
     for (;;) {
         asio::ip::tcp::socket socket(this->io_context);
-        co_await acceptor->async_accept(socket, asio::redirect_error(asio::use_awaitable, ec));
+        co_await acceptor->async_accept(
+            socket, asio::redirect_error(asio::use_awaitable, ec));
 
         if (ec) {
             SPDLOG_WARN("{}", ec.value());
