@@ -11,3 +11,21 @@ coro_actor 希望用户能直接使用 C++ 进行业务开发, 因此为了做�
 对于每个 Actor 进程, 框架保证服务都是顺序执行的, 每个服务都运行在一个协程中, 服务中可以通过导出的全局上下文 `g_actor_ctx` 获取 Actor 进程底层使用的 Asio io_context, 通过这个上下文, 我们可以在服务需要进行网络通信时使用协程进行处理, 避免使用阻塞网络 io 而影响整个 Actor进程的调度, 当服务执行完后, 用户需要显式通知上下文处理完成, 因为在服务处理完成之前, 框架内部的协程是处于等待状态的
 
 通过全局上下文我们可以在一个 Actor 进程的服务中调用另一个 Actor 进程提供的服务, 在框架底层通过引入一个 Proxy 代理进程进行请求转发和负载均衡, 它们之间通过 Unix 域套接字, 可以很好地融入 Asio 协程上下文, 并且由协程保证了不会出现并发资源访问的问题, 做到完全无锁, 由于 Proxy 进程只进行消息转发, 不要处理具体业务逻辑, 故只使用一个进程即可, 不会有太大的性能问题
+
+## 构建
+
+```bash
+git clone --recurse-submodules https://github.com/xukeawsl/coro_actor.git
+cd coro_actor
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake --build .
+```
+
+## 运行
+
+编写完配置文件后通过如下命令启动即可
+
+```bash
+./coro_actor ../actor_config.yml
+```
