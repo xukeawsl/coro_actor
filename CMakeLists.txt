@@ -10,7 +10,8 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose Release or Debug" FORCE)
 endif()
 
-option(SPDLOG_INSTALL "Generate the install target" ON)
+option(SPDLOG_INSTALL "Generate the spdlog install target" ON)
+option(YAML_CPP_INSTALL "Generate the yaml-cpp install target" ON)
 
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -ggdb -Wall -Wno-unused-variable -Wno-sign-compare -Wno-unused-local-typedefs")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wno-unused -Wno-sign-compare -Wno-unused-variable")
@@ -64,3 +65,14 @@ if (CLANG_FORMAT_EXECUTABLE)
         "Automatically format the code style"
     )
 endif()
+
+include(GNUInstallDirs)
+
+install(TARGETS ${PROJECT_NAME}d ${PROJECT_NAME}
+    LIBRARY
+        DESTINATION lib
+    RUNTIME
+        DESTINATION bin
+)
+
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include/)
