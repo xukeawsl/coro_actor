@@ -31,7 +31,7 @@ asio::awaitable<void> svc_use_thread_impl(coro_actor_pack_t* rqst, coro_actor_pa
 
     co_await complete_nofity->async_wait(asio::redirect_error(asio::use_awaitable, ec));
 
-    SPDLOG_INFO("result: {}", cnt);
+    SPDLOG_INFO("result: {}", cnt.load());
 
     g_actor_ctx->notify_complete();
     co_return;
