@@ -35,8 +35,7 @@ coro_actor::coro_actor(int argc, char* argv[])
       os_argv_last(argv[0]),
       io_context(1),
       signals(io_context),
-      terminate(false),
-      isdaemon(false) {}
+      terminate(false) {}
 
 coro_actor::~coro_actor() { spdlog::shutdown(); }
 
@@ -77,7 +76,7 @@ void coro_actor::init() {
     this->service_map = coro_actor_config::get()->get_service_map();
     this->actor_config_map = coro_actor_config::get()->get_actor_config_map();
 
-    if (this->isdaemon) {
+    if (coro_actor_config::get()->is_daemon()) {
         if (!this->set_daemon()) {
             exit(EXIT_FAILURE);
         }

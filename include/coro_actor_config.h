@@ -28,6 +28,8 @@ public:
 
     bool load(const std::string& file);
 
+    inline bool is_daemon() const { return this->daemon_; }
+
     inline std::string get_unix() const { return this->unix_; }
 
     inline std::unordered_map<std::string, std::string> get_service_map() const { return this->service_map_; }
@@ -43,6 +45,8 @@ private:
     coro_actor_config& operator=(coro_actor_config&&) = delete;
 
 private:
+    bool daemon_;
+
     std::string unix_;
 
     /* 根据服务名查找对应的 actor 节点名 */

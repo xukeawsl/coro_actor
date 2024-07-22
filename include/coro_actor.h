@@ -163,7 +163,6 @@ private:
     std::unique_ptr<void, dlhandle_deleter> dl_handle;
 
     bool terminate;
-    bool isdaemon;
 
     proxy_process proxy;
     std::vector<actor_process> actor_processes;

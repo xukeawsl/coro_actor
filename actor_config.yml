@@ -1,3 +1,7 @@
+# 是否作为作为守护进程运行, 此时要退出所有进程, 需要向 master 进程发送
+# SIGINT 或 SIGTERM 信号
+daemon: false
+
 # 进程间通信使用的 unix 域套接字
 unix: "/tmp/actor_proxy"
 

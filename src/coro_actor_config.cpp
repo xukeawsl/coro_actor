@@ -14,12 +14,16 @@ coro_actor_config* coro_actor_config::get() {
     return &instance;
 }
 
-coro_actor_config::coro_actor_config() {}
+coro_actor_config::coro_actor_config() : daemon_(false) {}
 
 bool coro_actor_config::load(const std::string& file) {
     YAML::Node root;
     try {
         root = YAML::LoadFile(file);
+
+        if (root["daemon"].IsDefined()) {
+            this->daemon_ = root["daemon"].as<bool>();
+        }
 
         this->unix_ = root["unix"].as<std::string>();
 
