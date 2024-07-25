@@ -29,7 +29,6 @@ asio::awaitable<void> svc_use_sqlite_impl(coro_actor_pack_t* rqst, coro_actor_pa
     /* 如果在这个时间内拿到文件锁了就正常处理, 否则还是返回 SQLITE_BUSY */
     sqlite3_busy_timeout(db, 50000);
 
-    /* Create SQL statement */
     sql = "CREATE TABLE IF NOT EXISTS COMPANY("
           "ID INT PRIMARY KEY     NOT NULL,"
           "NAME           TEXT    NOT NULL,"
@@ -37,7 +36,6 @@ asio::awaitable<void> svc_use_sqlite_impl(coro_actor_pack_t* rqst, coro_actor_pa
           "ADDRESS        CHAR(50),"
           "SALARY         REAL )";
 
-    /* Execute SQL statement */
     rc = sqlite3_exec(db, sql, 0, 0, &zErrMsg);
 
     if (rc != SQLITE_OK) {

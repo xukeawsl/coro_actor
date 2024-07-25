@@ -3,3 +3,5 @@ build
 .vscode
 
 *.so
+
+example/use_sqlite/sqlite3.*
