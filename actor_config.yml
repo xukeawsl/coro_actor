@@ -41,3 +41,10 @@ actor_config:
     actor_address: "127.0.0.1"
     actor_port: 7779
     actor_service: "../config/use_thread.yml"
+
+  - actor_name: "use_sqlite"
+    actor_count: 2
+    actor_module: "libsvr_use_sqlite.so"
+    actor_address: "127.0.0.1"
+    actor_port: 7780
+    actor_service: "../config/use_sqlite.yml"

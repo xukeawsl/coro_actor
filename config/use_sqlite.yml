@@ -1,0 +1,2 @@
+services:
+  - svc_use_sqlite
