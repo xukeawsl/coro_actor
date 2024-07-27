@@ -33,11 +33,15 @@ coro_actor::coro_actor(int argc, char* argv[])
       os_argc(argc),
       os_argv(argv),
       os_argv_last(argv[0]),
+      pid(getpid()),
       io_context(1),
       signals(io_context),
       terminate(false) {}
 
-coro_actor::~coro_actor() { spdlog::shutdown(); }
+coro_actor::~coro_actor() {
+    spdlog::shutdown();
+    this->delete_pidfile(coro_actor_config::get()->pid_file());
+}
 
 void coro_actor::run() noexcept {
     try {
@@ -62,14 +66,50 @@ void coro_actor::stop_server() {
 }
 
 void coro_actor::init() {
-    if (this->os_argc != 2) {
-        throw std::runtime_error(
-            "Need a config file. usage: coro_actor configfilename");
+    /* 解析命令行选项 */
+    cxxopts::Options options(
+        "coro_actor",
+        "A simple Actor framework developed based on Asio C++20 coroutine");
+
+    // clang-format off
+    options.add_options()
+        ("c,config", "Start Coro Actor By YML Config File", cxxopts::value<std::string>())
+        ("s,stop", "Stop Coro Actor By YML Config File", cxxopts::value<std::string>())
+        ("h,help", "About Command");
+    // clang-format on
+
+    auto result = options.parse(this->os_argc, this->os_argv);
+
+    if (result.count("help")) {
+        std::puts(options.help().c_str());
+        exit(EXIT_SUCCESS);
+    }
+
+    if ((!result.count("config") && !result.count("stop")) ||
+        (result.count("config") && result.count("stop"))) {
+        std::puts("Error parsing options: Use '-h' or '--help' to see usage.");
+        exit(EXIT_FAILURE);
+    }
+
+    std::string config_file;
+    bool stop = false;
+
+    if (result.count("config")) {
+        config_file = result["config"].as<std::string>();
+    } else {
+        config_file = result["stop"].as<std::string>();
+        stop = true;
     }
 
     /* 加载配置文件 */
-    if (!coro_actor_config::get()->load(os_argv[1])) {
+    if (!coro_actor_config::get()->load(config_file)) {
         throw std::runtime_error("Failed to load config file.");
+    }
+
+    /* 停止配置指定的进程 */
+    if (stop) {
+        this->handle_stop_command(coro_actor_config::get()->pid_file());
+        exit(EXIT_SUCCESS);
     }
 
     this->unix_fd = coro_actor_config::get()->get_unix();
@@ -81,6 +121,8 @@ void coro_actor::init() {
             exit(EXIT_FAILURE);
         }
     }
+
+    this->create_pidfile(coro_actor_config::get()->pid_file());
 
     this->init_setproctitle();
     this->set_proctitle("master");
@@ -121,6 +163,53 @@ void coro_actor::init() {
 
         ac_map[cfg.name] = acceptor;
     }
+}
+
+void coro_actor::create_pidfile(const std::string& pid_file) {
+    if (std::filesystem::exists(pid_file)) {
+        throw std::runtime_error("pid file already exists");
+    }
+
+    std::ofstream pf(pid_file);
+    if (!pf.is_open()) {
+        throw std::runtime_error("Can't Open file: " + pid_file);
+    }
+
+    pf << this->pid;
+
+    pf.close();
+}
+
+void coro_actor::delete_pidfile(const std::string& pid_file) {
+    if (!std::filesystem::exists(pid_file)) {
+        return;
+    }
+
+    std::ifstream pf(pid_file);
+
+    int pid;
+
+    pf >> pid;
+
+    if (pf.fail()) return;
+
+    if (pid == this->pid) std::remove(pid_file.c_str());
+}
+
+void coro_actor::handle_stop_command(const std::string& pid_file) {
+    if (!std::filesystem::exists(pid_file)) {
+        return;
+    }
+
+    std::ifstream pf(pid_file);
+
+    int pid;
+
+    pf >> pid;
+
+    if (pf.fail()) return;
+
+    kill(pid, SIGTERM);
 }
 
 bool coro_actor::set_daemon() {
@@ -215,7 +304,7 @@ void coro_actor::set_proctitle(const std::string& title) {
 
 void coro_actor::set_logger(const std::string& logger_name) {
     std::string log_file =
-        this->log_dir + logger_name + "-" + std::to_string(getpid()) + ".log";
+        this->log_dir + logger_name + "-" + std::to_string(this->pid) + ".log";
 
     if (this->type == PTYPE::WORKER) {
         spdlog::init_thread_pool(8192, 1);
@@ -328,6 +417,7 @@ void coro_actor::init_proxy_process() {
         }
         case 0: {
             this->io_context.notify_fork(asio::io_context::fork_child);
+            this->pid = getpid();
             this->set_proctitle("proxy");
             this->set_logger("actor_proxy");
             this->handle_proxy_process();
@@ -626,6 +716,7 @@ void coro_actor::spawn_actor_process(const std::string& actor_name,
             this->io_context.notify_fork(asio::io_context::fork_child);
             this->type = PTYPE::WORKER;
             this->actor_name = actor_name;
+            this->pid = getpid();
             this->set_proctitle("actor_" + actor_name);
             this->set_logger("actor_node_" + actor_name);
             this->handle_actor_process();
@@ -689,7 +780,7 @@ asio::awaitable<void> coro_actor::handle_actor_notify_proxy() {
     }
 
     coro_actor_connect_t pack;
-    pack.pid = getpid();
+    pack.pid = this->pid;
     pack.name = this->actor_name;
 
     auto serialize_pack = struct_pack::serialize<std::string>(pack);

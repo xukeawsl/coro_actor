@@ -12,6 +12,7 @@ endif()
 
 option(SPDLOG_INSTALL "Generate the spdlog install target" ON)
 option(YAML_CPP_INSTALL "Generate the yaml-cpp install target" ON)
+option(CXXOPTS_ENABLE_INSTALL "Generate the cxxopts install target" ON)
 
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -ggdb -Wall -Wno-unused-variable -Wno-sign-compare -Wno-unused-local-typedefs")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wno-unused -Wno-sign-compare -Wno-unused-variable")
@@ -19,6 +20,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wno-unused -Wno-sign-compare -Wno-unused-varia
 add_subdirectory(third-party/spdlog)
 add_subdirectory(third-party/yalantinglibs)
 add_subdirectory(third-party/yaml-cpp)
+add_subdirectory(third-party/cxxopts)
 
 file(GLOB_RECURSE srcs ${PROJECT_SOURCE_DIR}/src/*.cpp)
 file(GLOB_RECURSE hrds ${PROJECT_SOURCE_DIR}/include/*.h)
@@ -36,6 +38,7 @@ target_link_libraries(${PROJECT_NAME}d PUBLIC
     yalantinglibs::yalantinglibs
     spdlog::spdlog
     yaml-cpp::yaml-cpp
+    cxxopts::cxxopts
     pthread
     dl
 )

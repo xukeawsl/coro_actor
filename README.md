@@ -24,10 +24,17 @@ cmake --build .
 
 ## 运行
 
-编写完配置文件后通过如下命令启动即可
+编写完配置文件后通过命令启动即可
 
 ```bash
-./coro_actor ../actor_config.yml
+# 查看帮助
+./coro_actor -h
+
+# 通过配置文件启动 coro_actor
+./coro_actor -c ../actor_config.yml
+
+# 通过配置文件关闭 coro_actor
+./coro_actor -s ../actor_config.yml
 ```
 
 ## 安装

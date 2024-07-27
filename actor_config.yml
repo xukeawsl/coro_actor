@@ -3,7 +3,10 @@
 daemon: false
 
 # 进程间通信使用的 unix 域套接字
-unix: "/tmp/actor_proxy"
+unix: "/tmp/actor_proxy.sock"
+
+# 存放主进程运行时的 pid
+pid: "/run/coro_actor.pid"
 
 actor_config:
   - actor_name: "echo"

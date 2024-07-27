@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <filesystem>
+#include <fstream>
 
 #include <dlfcn.h>
 #include <unistd.h>
@@ -22,3 +23,5 @@
 #include "spdlog/sinks/rotating_file_sink.h"
 
 #include "ylt/struct_pack.hpp"
+
+#include "cxxopts.hpp"

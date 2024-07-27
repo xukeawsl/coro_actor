@@ -32,6 +32,8 @@ public:
 
     inline std::string get_unix() const { return this->unix_; }
 
+    inline std::string pid_file() const { return this->pid_file_; }
+
     inline std::unordered_map<std::string, std::string> get_service_map() const { return this->service_map_; }
 
     inline std::unordered_map<std::string, actor_config> get_actor_config_map() const { return this->actor_config_map_; }
@@ -48,6 +50,8 @@ private:
     bool daemon_;
 
     std::string unix_;
+
+    std::string pid_file_;
 
     /* 根据服务名查找对应的 actor 节点名 */
     std::unordered_map<std::string, std::string> service_map_;

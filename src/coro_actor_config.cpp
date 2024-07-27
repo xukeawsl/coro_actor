@@ -14,7 +14,8 @@ coro_actor_config* coro_actor_config::get() {
     return &instance;
 }
 
-coro_actor_config::coro_actor_config() : daemon_(false) {}
+coro_actor_config::coro_actor_config()
+    : daemon_(false), pid_file_("/run/coro_actor.pid") {}
 
 bool coro_actor_config::load(const std::string& file) {
     YAML::Node root;
@@ -26,6 +27,10 @@ bool coro_actor_config::load(const std::string& file) {
         }
 
         this->unix_ = root["unix"].as<std::string>();
+
+        if (root["pid"].IsDefined()) {
+            this->pid_file_ = root["pid"].as<std::string>();
+        }
 
         /* 检查是否存在同名 actor 节点*/
         std::unordered_set<std::string> check_actor_name;

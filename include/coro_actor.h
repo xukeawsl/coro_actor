@@ -73,6 +73,12 @@ private:
 
     void init();
 
+    void create_pidfile(const std::string& pid_file);
+
+    void delete_pidfile(const std::string& pid_file);
+
+    void handle_stop_command(const std::string& pid_file);
+
     /* 更新所有进程的状态 */
     void update_processes_status();
 
@@ -139,6 +145,7 @@ private:
     int os_argc;
     char **os_argv;
     char *os_argv_last;
+    pid_t pid;
 
     std::shared_ptr<char[]> os_environ;
 
