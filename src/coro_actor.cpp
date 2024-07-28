@@ -106,7 +106,7 @@ void coro_actor::init() {
         throw std::runtime_error("Failed to load config file.");
     }
 
-    /* 停止配置指定的进程 */
+    /* 停止配置文件指定的进程 */
     if (stop) {
         this->handle_stop_command(coro_actor_config::get()->pid_file());
         exit(EXIT_SUCCESS);
@@ -260,7 +260,7 @@ void coro_actor::init_setproctitle() {
         size += strlen(environ[i]) + 1;
     }
 
-    this->os_environ.reset(new char[size]);
+    this->os_environ = std::make_unique<char[]>(size);
 
     for (int i = 0; this->os_argv[i]; i++) {
         if (this->os_argv_last == this->os_argv[i]) {
@@ -774,7 +774,7 @@ asio::awaitable<void> coro_actor::handle_actor_notify_proxy() {
         asio::local::stream_protocol::endpoint(this->unix_fd),
         asio::redirect_error(asio::use_awaitable, ec));
     if (ec) {
-        SPDLOG_INFO("{}", ec.value());
+        SPDLOG_INFO("{}", ec.message());
         this->stop_server();
         co_return;
     }
@@ -797,7 +797,7 @@ asio::awaitable<void> coro_actor::handle_actor_notify_proxy() {
     co_await asio::async_write(*unix_socket, write_buf,
                                asio::redirect_error(asio::use_awaitable, ec));
     if (ec) {
-        SPDLOG_INFO("{}", ec.value());
+        SPDLOG_INFO("{}", ec.message());
         co_return;
     }
 
@@ -807,7 +807,7 @@ asio::awaitable<void> coro_actor::handle_actor_notify_proxy() {
     co_await asio::async_read(*unix_socket, read_buf,
                               asio::redirect_error(asio::use_awaitable, ec));
     if (ec) {
-        SPDLOG_INFO("{}", ec.value());
+        SPDLOG_INFO("{}", ec.message());
         co_return;
     }
 
@@ -822,7 +822,7 @@ asio::awaitable<void> coro_actor::handle_actor_notify_proxy() {
         asio::buffer(serialize_pack.data(), serialize_pack.length()),
         asio::redirect_error(asio::use_awaitable, ec));
     if (ec) {
-        SPDLOG_INFO("{}", ec.value());
+        SPDLOG_INFO("{}", ec.message());
         co_return;
     }
 
@@ -928,7 +928,7 @@ asio::awaitable<void> coro_actor::handle_actor_remote() {
             socket, asio::redirect_error(asio::use_awaitable, ec));
 
         if (ec) {
-            SPDLOG_WARN("{}", ec.value());
+            SPDLOG_WARN("{}", ec.message());
             co_return;
         }
 

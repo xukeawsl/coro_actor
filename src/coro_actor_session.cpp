@@ -2,8 +2,6 @@
 
 #include "coro_actor_ctx.h"
 
-extern coro_actor_ctx* g_actor_ctx;
-
 coro_actor_session::coro_actor_session(asio::ip::tcp::socket socket)
     : socket_(std::make_shared<asio::ip::tcp::socket>(std::move(socket))) {}
 
@@ -15,7 +13,6 @@ void coro_actor_session::stop() {
 }
 
 void coro_actor_session::start() {
-    SPDLOG_INFO("new connect");
     asio::co_spawn(
         this->socket_->get_executor(),
         [self = shared_from_this()] { return self->handle_remote_pack(); },
@@ -35,7 +32,7 @@ asio::awaitable<void> coro_actor_session::handle_remote_pack() {
             *(this->socket_), asio::buffer(&service_length, 2),
             asio::redirect_error(asio::use_awaitable, ec));
         if (ec) {
-            SPDLOG_WARN("{}", ec.value());
+            SPDLOG_WARN("{}", ec.message());
             this->stop();
             co_return;
         }
@@ -49,7 +46,7 @@ asio::awaitable<void> coro_actor_session::handle_remote_pack() {
             asio::buffer(service_name.data(), service_name.length()),
             asio::redirect_error(asio::use_awaitable, ec));
         if (ec) {
-            SPDLOG_WARN("{}", ec.value());
+            SPDLOG_WARN("{}", ec.message());
             this->stop();
             co_return;
         }
@@ -58,7 +55,7 @@ asio::awaitable<void> coro_actor_session::handle_remote_pack() {
             *(this->socket_), asio::buffer(&type, 1),
             asio::redirect_error(asio::use_awaitable, ec));
         if (ec) {
-            SPDLOG_WARN("{}", ec.value());
+            SPDLOG_WARN("{}", ec.message());
             this->stop();
             co_return;
         }
@@ -67,7 +64,7 @@ asio::awaitable<void> coro_actor_session::handle_remote_pack() {
             *(this->socket_), asio::buffer(&data_length, 4),
             asio::redirect_error(asio::use_awaitable, ec));
         if (ec) {
-            SPDLOG_WARN("{}", ec.value());
+            SPDLOG_WARN("{}", ec.message());
             this->stop();
             co_return;
         }
@@ -81,12 +78,10 @@ asio::awaitable<void> coro_actor_session::handle_remote_pack() {
             asio::buffer(request_data.data(), request_data.length()),
             asio::redirect_error(asio::use_awaitable, ec));
         if (ec) {
-            SPDLOG_WARN("{}", ec.value());
+            SPDLOG_WARN("{}", ec.message());
             this->stop();
             co_return;
         }
-
-        SPDLOG_INFO("async_read");
 
         /* 将消息放到队列中去,
          * 所有的服务执行操作全部都在上下文的一个特定协程中执行, 保证同步 */
