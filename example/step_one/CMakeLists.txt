@@ -8,6 +8,7 @@ include_directories(
     ../../include
     ../../third-party/yalantinglibs/include
     ../../third-party/yalantinglibs/include/ylt/thirdparty
+    ../../third-party/cxxopts/include
 )
 
 add_library(${PROJECT_NAME} SHARED

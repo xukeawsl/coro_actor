@@ -8,6 +8,7 @@ include_directories(
     ../../include
     ../../third-party/yalantinglibs/include
     ../../third-party/yalantinglibs/include/ylt/thirdparty
+    ../../third-party/cxxopts/include
 )
 
 add_library(${PROJECT_NAME} SHARED
@@ -15,3 +16,5 @@ add_library(${PROJECT_NAME} SHARED
 )
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC pthread)
