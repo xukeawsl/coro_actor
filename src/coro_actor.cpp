@@ -120,6 +120,7 @@ void coro_actor::init() {
         if (!this->set_daemon()) {
             exit(EXIT_FAILURE);
         }
+        this->pid = getpid();
     }
 
     this->create_pidfile(coro_actor_config::get()->pid_file());
